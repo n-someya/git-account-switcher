@@ -10,9 +10,13 @@ use tempfile::TempDir;
 #[test]
 fn test_git_configuration_switching_e2e() {
     let temp_root = TempDir::new().expect("Failed to create temp dir");
-    let temp_path = temp_root.path();
+    let temp_path = temp_root
+        .path()
+        .canonicalize()
+        .expect("Failed to canonicalize temp path");
 
     let fake_home = temp_path.join("home");
+
     let base_config_dir = fake_home.join(".config").join("gh-multiaccount");
     let work_root = temp_path.join("Developer").join("work");
     let personal_root = temp_path.join("Developer").join("personal");
@@ -121,9 +125,12 @@ fn test_git_configuration_switching_e2e() {
     let outside_account_output = Command::new("git")
         .current_dir(&outside_repo)
         .env("HOME", &fake_home)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env_remove("GIT_CONFIG_GLOBAL")
         .args(["config", "--get", "ghmultiaccount.account"])
         .output()
         .unwrap();
+
     assert!(!outside_account_output.status.success());
 
     // Case 4: Resolver cwd matching outside git repositories
@@ -151,6 +158,8 @@ fn run_git_cmd(cwd: &std::path::Path, fake_home: &std::path::Path, args: &[&str]
     let output = Command::new("git")
         .current_dir(cwd)
         .env("HOME", fake_home)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env_remove("GIT_CONFIG_GLOBAL")
         .args(args)
         .output()
         .unwrap_or_else(|e| panic!("Failed to run git {:?}: {}", args, e));

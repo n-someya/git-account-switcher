@@ -100,10 +100,15 @@ impl Manifest {
 }
 
 pub fn normalize_path(path: &Path) -> PathBuf {
-    if let Ok(stripped) = path.strip_prefix("~") {
+    let expanded = if let Ok(stripped) = path.strip_prefix("~") {
         if let Some(home) = dirs::home_dir() {
-            return home.join(stripped);
+            home.join(stripped)
+        } else {
+            path.to_path_buf()
         }
-    }
-    path.to_path_buf()
+    } else {
+        path.to_path_buf()
+    };
+
+    expanded.canonicalize().unwrap_or(expanded)
 }
